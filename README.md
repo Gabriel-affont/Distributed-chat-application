@@ -1,1 +1,1 @@
-# Distributed-chat-application
+The aim of the project is to help me learn and understand  the principles of distributed computing by creating a simple chat application that operates over a network of multiple server nodes and clients
