@@ -1,2 +1,4 @@
 redis>=5.0
 rich>=13.0
+pytest
+pytest-asyncio

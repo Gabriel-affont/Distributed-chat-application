@@ -193,6 +193,7 @@ class StreamConsumer:
         # Diagnostics the server can surface in logs / health checks.
         self.consumed_count: int = 0
         self.last_error: str | None = None
+        self.started = asyncio.Event()
 
     #  public lifecycle 
 
@@ -211,18 +212,36 @@ class StreamConsumer:
         loaded = self._store.load()
         if loaded is None:
             logger.info(
-                "no persisted cursor for stream %s; starting from $ (new messages only)",
+                "no persisted cursor for stream %s; resolving $ to current tail "
+                "(replay of retained history is skipped)",
                 self._stream_key,
             )
-            # "$" means "only entries added after this XREAD". On the
-            # very first call Redis resolves it to the current tail; on
-            # subsequent calls we always pass a concrete ID.
-            self._last_id = "$"
+            # Resolve "$" to a concrete tail BEFORE the main loop so
+            # messages published during startup (between task creation
+            # and the first XREAD) are not silently dropped. Uses
+            # XREVRANGE for a non-blocking tail fetch; empty stream ->
+            # 0-0 (start of stream, delivery of any future entries).
+            try:
+                tail = await self._client.xrevrange(
+                    self._stream_key, max="+", min="-", count=1
+                )
+                self._last_id = str(tail[0][0]) if tail else "0-0"
+            except Exception as exc:  # noqa: BLE001 — degrade gracefully
+                logger.warning(
+                    "could not resolve initial tail for %s (%s); "
+                    "starting from $",
+                    self._stream_key, exc,
+                )
+                self._last_id = "$"
         else:
             logger.info(
                 "resuming stream %s from cursor %s", self._stream_key, loaded
             )
             self._last_id = loaded
+
+        # Mark the consumer as started once the cursor is resolved.
+        # Tests and health checks can await this before publishing.
+        self.started.set()
 
         attempt = 0
         while not self._stopping.is_set():
