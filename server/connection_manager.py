@@ -157,7 +157,24 @@ class ConnectionManager:
                 pass
         logger.debug("unregistered %s (total=%d)", conn, len(self._clients))
 
-    # -- send API ----------------------------------------------------------
+    async def flush(self, conn: ClientConn, timeout: float = 1.0) -> None:
+        """Wait for the client's outbound queue to drain (bounded).
+
+        Used on the disconnect path so a final error frame enqueued by
+        the handler has a chance to actually hit the socket before
+        teardown cancels the drain task. Bounded so a dead peer cannot
+        block shutdown.
+
+        No-op if the client is already gone.
+        """
+        if conn.id not in self._clients:
+            return
+        try:
+            await asyncio.wait_for(conn.queue.join(), timeout=timeout)
+        except asyncio.TimeoutError:
+            logger.debug("flush timed out for %s", conn)
+     
+    # send API 
 
     async def broadcast(self, msg: Message) -> None:
         """Fan *msg* out to every local client.
@@ -271,6 +288,8 @@ class ConnectionManager:
                         "writer failed for %s: %s; closing", conn, exc
                     )
                     return
+                finally:
+                    conn.queue.task_done()
         except asyncio.CancelledError:
             # Normal shutdown path.
             raise
