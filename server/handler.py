@@ -283,10 +283,15 @@ async def _handle_join(
             )
             anchor = None
 
-        # Step 3: fetch and send history up to now.
+        # Step 3: fetch and send history up to now. History is chat-only:
+        # join/leave events are transient metadata, not conversation, and
+        # the protocol's history frame is chat-shaped by contract
+        # (_validate_history requires each entry to be a valid chat).
+        # Filtering here makes the frame valid by construction.
         history = await ctx.broker_consumer.history(count=config.HISTORY_COUNT)
-        if history:
-            history_msg = protocol.make_history([m.to_dict() for m in history])
+        chat_only = [m for m in history if m.type == protocol.TYPE_CHAT]
+        if chat_only:
+            history_msg = protocol.make_history([m.to_dict() for m in chat_only])
             # Best-effort: if the client's queue is full at join (already
             # slow before joining), we still proceed; they will get live
             # messages. History is a nicety, not a correctness guarantee.

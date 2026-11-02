@@ -339,6 +339,40 @@ class TestHistoryOnJoin:
         assert events == ["xrevrange", "history"]
 
 
+    async def test_history_excludes_join_and_leave_events(
+        self,
+        manager: ConnectionManager,
+        fake_redis: FakeRedis,
+        producer: FakeStreamProducer,
+    ) -> None:
+        # Mixed history: chat, join, leave. Only the chat should make it
+        # into the history frame (protocol history is chat-shaped).
+        history = [
+            make_chat("bob", "old"),
+            make_join("bob"),
+            make_leave("bob"),
+        ]
+        consumer = FakeStreamConsumer(history=history)
+        ctx = HandlerContext(
+            broker_producer=producer,  # type: ignore[arg-type]
+            broker_consumer=consumer,  # type: ignore[arg-type]
+            manager=manager,
+            redis_client=fake_redis,  # type: ignore[arg-type]
+            node_id="node-test",
+        )
+
+        writer = FakeWriter()
+        reader = FakeReader([_line(make_join("alice"))])
+        await handle_client(reader, writer, ctx=ctx)  # type: ignore[arg-type]
+
+        frames = [protocol.decode(c) for c in writer.chunks]
+        history_frames = [f for f in frames if f.type == protocol.TYPE_HISTORY]
+        assert len(history_frames) == 1
+        # Only the chat survived filtering.
+        assert len(history_frames[0].messages) == 1
+        assert history_frames[0].messages[0]["content"] == "old"
+
+
 # ---------------------------------------------------------------------------
 # Dispatch rules
 # ---------------------------------------------------------------------------
