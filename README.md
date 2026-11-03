@@ -24,15 +24,11 @@ and client-driven failover.
 - [Usage](#usage)
   - [Running the server nodes](#running-the-server-nodes)
   - [Running the client](#running-the-client)
-  - [One-command demo](#one-command-demo)
   - [Using the chat](#using-the-chat)
-  - [What you should see](#what-you-should-see)
-- [Running the Tests](#running-the-tests)
 - [Configuration](#configuration)
 - [Project Structure](#project-structure)
 - [Known Limitations](#known-limitations)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
+
 
 
 ---
@@ -163,4 +159,52 @@ future work.
 
 No authentication — the server overwrites the sender with the username
 from join, preventing casual spoofing but not real auth.
+
+PROJECT STRUCTURE
+distributed-chat/
+│
+├── README.md                       
+├── requirements.txt                 
+├── pyproject.toml                  
+├── .gitignore                       
+├── .env.example                     
+├── docker-compose.yml               
+│
+├── config.py                        
+│                                    
+├── protocol.py                      
+│
+├── server/
+│   ├── __init__.py
+│   ├── main.py                      
+│   │                                
+│   ├── handler.py                   
+│   │                                
+│   ├── connection_manager.py        
+│   │                                
+│   ├── broker.py                    
+│   │                                
+│   └── state.py                     
+│                                   
+│
+├── client/
+│   ├── __init__.py
+│   ├── main.py                     
+│   │                                
+│   └── failover.py                  
+│                                   
+│
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py                 
+│   │                                
+│   ├── test_protocol.py            
+│   │                                
+│   ├── test_state.py                
+│   ├── test_broker.py               
+│   │                               
+│   ├── test_connection_manager.py  
+│   ├── test_handler.py              
+
+
 
