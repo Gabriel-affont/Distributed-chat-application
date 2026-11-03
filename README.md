@@ -89,7 +89,7 @@ life cycle of the message
 ### 1. Clone the repository
 
 ```bash
-git clone <your-repository-url> distributed-chat
+git clone Gabriel-affont/Distributed-chat-application
 cd distributed-chat
 
 2. create a virtual evnviroment
