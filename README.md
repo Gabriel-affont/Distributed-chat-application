@@ -123,6 +123,8 @@ python -m client.main alice
 Terminal 4 — client "bob":
 python -m client.main bob
 
+Terminal 5 Test history on join
+.\.venv\Scripts\python.exe -m client.main carol
 One-command demo
 Helper scripts start both nodes and print the exact client commands for your
 shell: .\scripts\demo_two_nodes.ps1

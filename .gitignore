@@ -1,6 +1,7 @@
-.venv/
-venv/
+.vscode/
 __pycache__/
-*.pyc
-data/*.lastid
+*.py[cod]
 .pytest_cache/
+.venv/
+data/
+.env
